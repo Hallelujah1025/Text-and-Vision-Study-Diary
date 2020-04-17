@@ -46,12 +46,18 @@ def countBigrams():
     # print(type(maxValue))
 
     for i in range(len(singleBigram)):
-        if maxValue[1] in singleBigram[i]:
-            print(singleBigram[i - 1], singleBigram[i + 1])
+        if maxValue[1] == singleBigram[i]:
+            if i - 1 < 0 or i + 1 >= len(singleBigram):
+                print("out of index")
+            else:
+                print(singleBigram[i - 1], singleBigram[i + 1])
+
+
 
 if __name__ == '__main__':
     article = []
     readArticles("D:/STUDY/Text and Vision Intelligence/CJLU day 3/terrorism data", article)
+    # readArticles("D:/STUDY/Text and Vision Intelligence/CJLU day 3/example", article)
 
     # print(article)
     allBigrams = []
