@@ -25,10 +25,16 @@ def analyseArticle(article = []):
         # return bigrams
     return all
 
+singleBigram = []
+def transform():
+    for i in range(len(all)):
+        for j in range(len(all[i])):
+            singleBigram.append(all[i][j])
+
 
 def countBigrams():
     count = {}
-    for value in all:
+    for value in singleBigram:
         if value in count:
             count[value] += 1
         else:
@@ -39,20 +45,21 @@ def countBigrams():
     print(maxValue)
     # print(type(maxValue))
 
-    for i in range(len(all)):
-        if maxValue[1] in all[i]:
-            print(all[i - 1], all[i + 1])
+    for i in range(len(singleBigram)):
+        if maxValue[1] in singleBigram[i]:
+            print(singleBigram[i - 1], singleBigram[i + 1])
 
 if __name__ == '__main__':
     article = []
-    # readArticles("D:/STUDY/Text and Vision Intelligence/CJLU day 3/terrorism data", article)
+    readArticles("D:/STUDY/Text and Vision Intelligence/CJLU day 3/terrorism data", article)
 
-    readArticles("D:/STUDY/Text and Vision Intelligence/CJLU day 3/example", article)
     # print(article)
     allBigrams = []
     analyseArticle(article)
-    print(all)
+    # print(all)
 
+    transform()
+    # print(singleBigram)
 
     countBigrams()
 
