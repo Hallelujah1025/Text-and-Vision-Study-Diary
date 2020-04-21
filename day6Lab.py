@@ -10,6 +10,7 @@ corpus = ['king is a strong man',
           'princess is a girl will be queen']
 
 
+# Define a method to remove stop words
 import nltk
 def remove_stop_words(corpus):
     wantedTag = set(['NN', 'NNS', 'NNP', 'NNPS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
@@ -33,6 +34,7 @@ words = set(words)
 
 # Generate context for each word in a defined window size
 word2int = {}
+
 for i, word in enumerate(words):
     word2int[word] = i
 
@@ -50,15 +52,17 @@ for sentence in sentences:
                 data.append([word, neighbor])
 
 # Now create an input and a output label as reqired for a machine learning algorithm.
-# for text in corpus:
-#     print(text)
+for text in corpus:
+    print(text)
 
 import pandas as pd
 
+
+
 df = pd.DataFrame(data, columns=['input', 'label'])
-# print(df)
-# print(df.shape)
-# print(word2int)
+print(df)
+print(df.shape)
+print(word2int)
 
 
 #Deinfine the tensor flow graph. That is define the NN
@@ -77,42 +81,39 @@ X = [] # input word
 Y = [] # target word
 
 for x, y in zip(df['input'], df['label']):
-    X.append(to_one_hot_encoding(word2int[x]))
-    Y.append(to_one_hot_encoding(word2int[y]))
-
+    X.append(to_one_hot_encoding(word2int[ x ]))
+    Y.append(to_one_hot_encoding(word2int[ y ]))
 
 # convert them to numpy arrays
 X_train = np.asarray(X)
 Y_train = np.asarray(Y)
 
 # making placeholders for X_train and Y_train
-x = tf.compat.v1.placeholder(tf.float32, shape=(None, ONE_HOT_DIM))
-y_label = tf.compat.v1.placeholder(tf.float32, shape=(None, ONE_HOT_DIM))
-
+x = tf.placeholder(tf.float32, shape=(None, ONE_HOT_DIM))
+y_label = tf.placeholder(tf.float32, shape=(None, ONE_HOT_DIM))
 
 # word embedding will be 2 dimension for 2d visualization
 EMBEDDING_DIM = 2
 
 # hidden layer: which represents word vector eventually
-W1 = tf.Variable(tf.random.normal([ONE_HOT_DIM, EMBEDDING_DIM]))
-b1 = tf.Variable(tf.random.normal([1])) #bias
-hidden_layer = tf.add(tf.matmul(x, W1), b1)
+W1 = tf.Variable(tf.random_normal([ONE_HOT_DIM, EMBEDDING_DIM]))
+b1 = tf.Variable(tf.random_normal([1])) #bias
+hidden_layer = tf.add(tf.matmul(x,W1), b1)
 
 # output layer
-W2 = tf.Variable(tf.random.normal([EMBEDDING_DIM, ONE_HOT_DIM]))
-b2 = tf.Variable(tf.random.normal([1]))
-prediction = tf.nn.softmax(tf.add(tf.matmul(hidden_layer, W2), b2))
-
+W2 = tf.Variable(tf.random_normal([EMBEDDING_DIM, ONE_HOT_DIM]))
+b2 = tf.Variable(tf.random_normal([1]))
+prediction = tf.nn.softmax(tf.add( tf.matmul(hidden_layer, W2), b2))
 
 # loss function: cross entropy
-loss = tf.reduce_mean(-tf.reduce_sum(y_label * tf.math.log(prediction), axis=[1]))
+loss = tf.reduce_mean(-tf.reduce_sum(y_label * tf.log(prediction), axis=[1]))
 
 # training operation
-train_op = tf.compat.v1.train.GradientDescentOptimizer(0.05).minimize(loss)
+train_op = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
 
 #Train the NN
-sess = tf.compat.v1.Session()
-init = tf.compat.v1.global_variables_initializer()
+sess = tf.Session()
+init = tf.global_variables_initializer()
 sess.run(init)
 
 iteration = 20000
@@ -133,6 +134,19 @@ w2v_df = pd.DataFrame(vectors, columns = ['x1', 'x2'])
 w2v_df['word'] = words
 w2v_df = w2v_df[['word', 'x1', 'x2']]
 print(w2v_df)
+
+def searchNearstWord():
+    for index, word, x1, x2 in zip(w2v_df.index, w2v_df['word'], w2v_df['x1'], w2v_df['x2']):
+        shortestDistance = 100
+        for i in range(ONE_HOT_DIM):
+            if i != index:
+                distance = (w2v_df.at[i, 'x1'] - w2v_df.at[index, 'x1']) ** 2 + (w2v_df.at[i, 'x2'] - w2v_df.at[index, 'x2']) ** 2
+                if distance < shortestDistance:
+                    shortestDistance = distance
+                    nearestWord = w2v_df.at[i, 'word']
+        print("nearest word to", w2v_df.at[index, 'word'], "is:", nearestWord)
+
+searchNearstWord()
 
 #Now print the word vector as a 2d chart
 import matplotlib.pyplot as plt
