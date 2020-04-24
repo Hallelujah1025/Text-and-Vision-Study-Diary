@@ -3,6 +3,9 @@ from nltk.tree import Tree
 import nltk
 import os
 
+# path of the specific dir I put in my own computer
+ref = "D:/STUDY/Text and Vision Intelligence/Assignment1/example"
+
 def get_continuous_chunks(text):
     chunked = ne_chunk(pos_tag(word_tokenize(text)))
     prev = None
@@ -29,9 +32,7 @@ def get_continuous_chunks(text):
 
 
 # a function to read all articles below a dir and convert them to one single str
-def readArticles():
-    # path of the specific dir I put in my own computer
-    ref = "D:/STUDY/Text and Vision Intelligence/Assignment1/articles"
+def readArticlesAsStr(ref):
     dirs = os.listdir(ref)
     articles = []
     # traverse all files below the dir
@@ -51,19 +52,206 @@ def readArticles():
     strArticles = ' '.join(articles)
     return strArticles
 
-
-txt = readArticles()
-print(get_continuous_chunks(txt))
+txtStr = readArticlesAsStr(ref)
+# print(get_continuous_chunks(txtStr))
 
 
 count = {}
-for sent in nltk.sent_tokenize(txt):    # divide txt in sentences and traverse each sent
+for sent in nltk.sent_tokenize(txtStr):    # divide txt in sentences and traverse each sent
     for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
         if hasattr(chunk, 'label'):
-
             if chunk.label() in count:
                 count[chunk.label()] += 1
             else:
                 count[chunk.label()] = 1
 print(count)
 
+
+def readArticlesAsList(ref, detail = []):
+    articles = []
+    dirs = os.listdir(ref)
+    for file in dirs:
+        article = []
+        with open(os.path.join(ref, file)) as f:
+            for line in f.readlines():
+                line = line.strip('\n')
+                line = line.strip('\'')
+                article.append(line)
+        articles.append(article)
+
+        # transform all content into one single list
+        for i in range(len(articles)):
+            for j in range(len(articles[i])):
+                detail.append(articles[i][j])
+
+txtList = []
+readArticlesAsList(ref, txtList)
+
+
+
+
+
+
+
+
+
+
+
+
+
+import nltk
+def remove_stop_words(corpus):
+    wantedTag = set(['NN', 'NNS', 'NNP', 'NNPS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
+    results = []
+    for text in corpus:
+        tmp = text.split(' ')
+        posTags = nltk.pos_tag(tmp)
+        for word, pos in posTags:
+            if pos not in wantedTag:
+                tmp.remove(word)
+        results.append(" ".join(tmp))
+    return results
+
+corpus = remove_stop_words(txtList)
+words = []
+for text in corpus:
+    for word in text.split(' '):
+        words.append(word)
+
+words = set(words)
+
+# Generate context for each word in a defined window size
+word2int = {}
+
+for i, word in enumerate(words):
+    word2int[word] = i
+
+sentences = []
+for sentence in corpus:
+    sentences.append(sentence.split())
+
+WINDOW_SIZE = 1
+
+data = []
+for sentence in sentences:
+    for idx, word in enumerate(sentence):
+        for neighbor in sentence[max(idx - WINDOW_SIZE, 0): min(idx + WINDOW_SIZE, len(sentence)) + 1]:
+            if neighbor != word:
+                data.append([word, neighbor])
+
+# Now create an input and a output label as reqired for a machine learning algorithm.
+for text in corpus:
+    print(text)
+
+import pandas as pd
+
+
+
+df = pd.DataFrame(data, columns=['input', 'label'])
+print(df)
+print(df.shape)
+print(word2int)
+
+
+#Deinfine the tensor flow graph. That is define the NN
+import tensorflow as tf
+import numpy as np
+
+ONE_HOT_DIM = len(words)
+
+# function to convert numbers to one hot vectors
+def to_one_hot_encoding(data_point_index):
+    one_hot_encoding = np.zeros(ONE_HOT_DIM)
+    one_hot_encoding[data_point_index] = 1
+    return one_hot_encoding
+
+X = [] # input word
+Y = [] # target word
+
+for x, y in zip(df['input'], df['label']):
+    X.append(to_one_hot_encoding(word2int[ x ]))
+    Y.append(to_one_hot_encoding(word2int[ y ]))
+
+# convert them to numpy arrays
+X_train = np.asarray(X)
+Y_train = np.asarray(Y)
+
+# making placeholders for X_train and Y_train
+x = tf.placeholder(tf.float32, shape=(None, ONE_HOT_DIM))
+y_label = tf.placeholder(tf.float32, shape=(None, ONE_HOT_DIM))
+
+# word embedding will be 2 dimension for 2d visualization
+EMBEDDING_DIM = 2
+
+# hidden layer: which represents word vector eventually
+W1 = tf.Variable(tf.random_normal([ONE_HOT_DIM, EMBEDDING_DIM]))
+b1 = tf.Variable(tf.random_normal([1])) #bias
+hidden_layer = tf.add(tf.matmul(x,W1), b1)
+
+# output layer
+W2 = tf.Variable(tf.random_normal([EMBEDDING_DIM, ONE_HOT_DIM]))
+b2 = tf.Variable(tf.random_normal([1]))
+prediction = tf.nn.softmax(tf.add( tf.matmul(hidden_layer, W2), b2))
+
+# loss function: cross entropy
+loss = tf.reduce_mean(-tf.reduce_sum(y_label * tf.log(prediction), axis=[1]))
+
+# training operation
+train_op = tf.train.GradientDescentOptimizer(0.05).minimize(loss)
+
+#Train the NN
+sess = tf.Session()
+init = tf.global_variables_initializer()
+sess.run(init)
+
+iteration = 20000
+for i in range(iteration):
+    # input is X_train which is one hot encoded word
+    # label is Y_train which is one hot encoded neighbor word
+    sess.run(train_op, feed_dict={x: X_train, y_label: Y_train})
+    if i % 3000 == 0:
+        print('iteration '+str(i)+' loss is : ', sess.run(loss, feed_dict={x: X_train, y_label: Y_train}))
+
+
+# Now the hidden layer (W1 + b1) is actually the word look up table
+vectors = sess.run(W1 + b1)
+print(vectors)
+
+#Print the word vector in a table
+w2v_df = pd.DataFrame(vectors, columns = ['x1', 'x2'])
+w2v_df['word'] = words
+w2v_df = w2v_df[['word', 'x1', 'x2']]
+print(w2v_df)
+
+def searchNearstWord():
+    for index, word, x1, x2 in zip(w2v_df.index, w2v_df['word'], w2v_df['x1'], w2v_df['x2']):
+        shortestDistance = 100
+        for i in range(ONE_HOT_DIM):
+            if i != index:
+                distance = (w2v_df.at[i, 'x1'] - w2v_df.at[index, 'x1']) ** 2 + (w2v_df.at[i, 'x2'] - w2v_df.at[index, 'x2']) ** 2
+                if distance < shortestDistance:
+                    shortestDistance = distance
+                    nearestWord = w2v_df.at[i, 'word']
+        print("nearest word to", w2v_df.at[index, 'word'], "is:", nearestWord)
+
+searchNearstWord()
+
+#Now print the word vector as a 2d chart
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+
+for word, x1, x2 in zip(w2v_df['word'], w2v_df['x1'], w2v_df['x2']):
+    ax.annotate(word, (x1, x2))
+
+PADDING = 1.0
+x_axis_min = np.amin(vectors, axis=0)[0] - PADDING
+y_axis_min = np.amin(vectors, axis=0)[1] - PADDING
+x_axis_max = np.amax(vectors, axis=0)[0] + PADDING
+y_axis_max = np.amax(vectors, axis=0)[1] + PADDING
+
+plt.xlim(x_axis_min, x_axis_max)
+plt.ylim(y_axis_min, y_axis_max)
+plt.rcParams["figure.figsize"] = (10, 10)
+
+plt.show()
