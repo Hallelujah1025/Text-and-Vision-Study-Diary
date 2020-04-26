@@ -4,32 +4,7 @@ import nltk
 import os
 
 # path of the specific dir I put in my own computer
-ref = "D:/STUDY/Text and Vision Intelligence/Assignment1/example"
-
-def get_continuous_chunks(text):
-    chunked = ne_chunk(pos_tag(word_tokenize(text)))
-    prev = None
-    continuous_chunk = []
-    current_chunk = []
-    #print(chunked)
-    for i in chunked:
-        if type(i) == Tree:
-            current_chunk.append(" ".join([token for token, pos in i.leaves()]))
-        elif current_chunk:
-            named_entity = " ".join(current_chunk)
-            if named_entity not in continuous_chunk:
-                continuous_chunk.append(named_entity)
-                current_chunk = []
-        else:
-            continue
-
-    if continuous_chunk:
-        named_entity = " ".join(current_chunk)
-        if named_entity not in continuous_chunk:
-            continuous_chunk.append(named_entity)
-
-    return continuous_chunk
-
+ref = "D:/STUDY/Text and Vision Intelligence/Assignment1/articles"
 
 # a function to read all articles below a dir and convert them to one single str
 def readArticlesAsStr(ref):
@@ -57,13 +32,16 @@ txtStr = readArticlesAsStr(ref)
 
 
 count = {}
+namedEntity = []
 for sent in nltk.sent_tokenize(txtStr):    # divide txt in sentences and traverse each sent
     for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
         if hasattr(chunk, 'label'):
-            if chunk.label() in count:
-                count[chunk.label()] += 1
-            else:
-                count[chunk.label()] = 1
+            if (' '.join(c[0] for c in chunk)) not in namedEntity:
+                namedEntity.append(' '.join(c[0] for c in chunk))
+                if chunk.label() in count:
+                    count[chunk.label()] += 1
+                else:
+                    count[chunk.label()] = 1
 print(count)
 
 
@@ -86,11 +64,6 @@ def readArticlesAsList(ref, detail = []):
 
 txtList = []
 readArticlesAsList(ref, txtList)
-
-
-
-
-
 
 
 
@@ -140,11 +113,7 @@ for sentence in sentences:
                 data.append([word, neighbor])
 
 # Now create an input and a output label as reqired for a machine learning algorithm.
-for text in corpus:
-    print(text)
-
 import pandas as pd
-
 
 
 df = pd.DataFrame(data, columns=['input', 'label'])
