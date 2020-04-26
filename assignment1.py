@@ -74,7 +74,7 @@ readArticlesAsList(ref, txtList)
 
 import nltk
 def remove_stop_words(corpus):
-    wantedTag = set(['NN', 'NNS', 'NNP', 'NNPS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
+    wantedTag = set(['NN', 'NNS', 'NNP', 'NNPS'])
     results = []
     for text in corpus:
         tmp = text.split(' ')
